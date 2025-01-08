@@ -1,0 +1,25 @@
+//Sleep for 10 sec, so new contacts gets associated with account first if necessary. Don't add Linder if it got an account.
+getUrl("https://httpstat.us/200?sleep=10000");
+orgId = 20082352585;
+linderbergUserId = 107555000000418001;
+contact = zoho.desk.getRecordById(orgId,"contacts",contactId);
+contactEmail = contact.get("email");
+accountId = contact.get("accountId");
+if(accountId == null)
+{
+	contactEmail = contactEmail.toString();
+	tickets = zoho.desk.searchRecords(orgId,"tickets","{email=" + contactEmail + "}");
+	if(tickets != null)
+	{
+		ticket = tickets.get("data").get(0);
+		ticketId = ticket.get("id");
+		//update Ticket
+		updateTicketMap = Map();
+		updateTicketMap.put("assigneeId",linderbergUserId);
+		updateTicket = zoho.desk.update(orgId,"Tickets",ticketId,updateTicketMap);
+		//update contact
+		contactMap = Map();
+		contactMap.put("ownerId",linderbergUserId);
+		updateContact = zoho.desk.update(orgId,"contacts",contactId,contactMap);
+	}
+}
