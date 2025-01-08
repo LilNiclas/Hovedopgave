@@ -1,0 +1,52 @@
+orgId = 20082352585;
+ticketRecord = zoho.desk.getRecordById(orgId,"Tickets",ticketId,"zohodesk");
+newline = hextoText("0A");
+//Update resolution
+ticketMap = Map();
+ticketMap.put("resolution","Article is based of the ticket number: " + ticketRecord.get("ticketNumber") + "." + newline + "Ticket URL: " + ticketRecord.get("webUrl"));
+updateTicket = zoho.desk.update(orgId,"Tickets",ticketId,ticketMap);
+//Get fields
+customfield = updateTicket.get("cf");
+ticketResolution = updateTicket.get("resolution");
+if(customfield != null)
+{
+	articleTitle = customfield.get("cf_title");
+	sendToHelpCenter = customfield.get("cf_send_answer_to_help_centerr");
+}
+if(sendToHelpCenter.contains("Yes"))
+{
+	//POST Article
+	if(ticketResolution != null)
+	{
+		resolutionAuthorId = updateTicket.get("assigneeId").toLong();
+		info resolutionAuthorId;
+		articleMap = Map();
+		articleMap.put("title",articleTitle);
+		articleMap.put("authorId",resolutionAuthorId);
+		articleMap.put("answer",ticketResolution.toString());
+		articleMap.put("categoryId",107555000004559197);
+		articleMap.put("status","Published");
+		articleMap.put("permission","ALL");
+		//Create Article Resolution
+		createArticle = invokeurl
+		[
+			url :"https://desk.zoho.eu/api/v1/articles"
+			type :POST
+			parameters:articleMap.toString()
+			connection:"zohodesk"
+		];
+		info createArticle;
+		articleId = createArticle.get("id");
+		//Set status to "Unpublished"
+		updateArticleMap = Map();
+		updateArticleMap.put("status","Unpublished");
+		updateArticleMap.put("categoryId",107555000004559197);
+		updateArticle = invokeurl
+		[
+			url :"https://desk.zoho.eu/api/v1/articles/" + articleId
+			type :PATCH
+			parameters:updateArticleMap.toString()
+			connection:"zohodesk"
+		];
+	}
+}
