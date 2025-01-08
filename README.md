@@ -10,5 +10,5 @@
 
 <p align="center"> 
 Deluge-scripts har ikke en specifik filendelse som f.eks. .js for JavaScript eller .py for Python. Disse scripts skrives og gemmes direkte i Zohos platforme, såsom Zoho CRM eller Zoho Projects, og kan ikke downloades som selvstændige filer.
-Alle scripts her er manuelt kopieret fra Zoho IDE.
+Alle scripts i dette projekt er blevet manuelt kopieret fra Zoho IDE.
 </p>
