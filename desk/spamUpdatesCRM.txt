@@ -1,0 +1,50 @@
+//Get ticket
+orgId = 20082352585;
+ticketRecord = zoho.desk.getRecordById(orgId,"Tickets",ticketId);
+contactId = ticketRecord.get("contactId");
+if(contactId != null)
+{
+	contact = zoho.desk.getRecordById(orgId,"contacts",contactId);
+	contactEmail = contact.get("email").toString();
+	searchCRMLead = zoho.crm.searchRecords("Leads","(Email:equals:" + contactEmail + ")",1,10,"zohocrm");
+	if(searchCRMLead.size() > 0)
+	{
+		//CRM lead exist
+		leadID = searchCRMLead.get(0).get("id");
+		updateMap = Map();
+		updateMap.put("Last_Name","TEST");
+		dataList = list();
+		dataList.add(updateMap);
+		dataMap = Map();
+		dataMap.put("data",dataList);
+		updateCRMContact = invokeurl
+		[
+			url :"https://www.zohoapis.eu/crm/v7/Leads/" + leadID
+			type :PUT
+			parameters:dataMap.toString()
+			connection:"zohocrm"
+		];
+	}
+	else
+	{
+		//CRM lead doesn't exist
+		searchCRMContact = zoho.crm.searchRecords("Contacts","(Email:equals:" + contactEmail + ")",1,10,"zohocrm");
+		if(searchCRMContact.size() > 0)
+		{
+			contactID = searchCRMContact.get(0).get("id");
+			updateMap = Map();
+			updateMap.put("Last_Name","TEST");
+			dataList = list();
+			dataList.add(updateMap);
+			dataMap = Map();
+			dataMap.put("data",dataList);
+			updateCRMContact = invokeurl
+			[
+				url :"https://www.zohoapis.eu/crm/v7/Contacts/" + contactID
+				type :PUT
+				parameters:dataMap.toString()
+				connection:"zohocrm"
+			];
+		}
+	}
+}
