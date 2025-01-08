@@ -1,0 +1,44 @@
+string standalone.addForumToProject(Int projectId)
+{
+//Get portal Id
+portal = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portals/"
+	type :GET
+	connection:"zohoprojects2"
+];
+portalId = portal.get("portals").get(0).get("id");
+//Get proejct
+project = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/"
+	type :GET
+	connection:"zohoprojects2"
+];
+info project;
+//Get All Forum in a project
+forums = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/forums/"
+	type :GET
+	connection:"zohoprojects2"
+];
+info forums;
+forums = forums.get("forums");
+forumNameList = list();
+for each  forum in forums
+{
+	forumName = forum.get("name");
+	forumNameList.add(forumName);
+}
+//Check if 
+noterMap = Map();
+noterMap.put("name","yo");
+noterMap.put("content","Her skrives kommentarer og noter vedrørende projektet");
+noterMap.put("flag","external");
+noterMap.put("sticky",true);
+noterMap.put("category_id","264621000000258057");
+forumList = list();
+forumList.add(noterMap);
+return "";
+}
