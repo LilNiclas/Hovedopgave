@@ -1,0 +1,32 @@
+orgId = 20082352585;
+accountRecord = zoho.desk.getRecordById(orgId,"Accounts",accountId);
+cf = accountRecord.get("cf");
+if(cf != null)
+{
+	cf_support_aftale = cf.get("cf_account_type");
+	if(cf_support_aftale.equals("Customer"))
+	{
+		query = "{'accountId':" + accountId + "}";
+		contacts = zoho.desk.searchRecords(orgId,"contacts",query);
+		for each  contact in contacts.get("data")
+		{
+			contactId = contact.get("id");
+			contactMap = Map();
+			contactMap.put("type","Paid user");
+			updateContact = zoho.desk.update(orgId,"contacts",contactId,contactMap);
+			info updateContact;
+		}
+	}
+	else
+	{
+		query = "{'accountId':" + accountId + "}";
+		contacts = zoho.desk.searchRecords(orgId,"contacts",query);
+		for each  contact in contacts.get("data")
+		{
+			contactId = contact.get("id");
+			contactMap = Map();
+			contactMap.put("Type","Prospect");
+			updateContact = zoho.desk.update(orgId,"contacts",contactId,contactMap);
+		}
+	}
+}
