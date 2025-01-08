@@ -1,0 +1,89 @@
+projectHoursThisMonth = zoho.crm.getOrgVariable("projectHoursThisMonth","crmvariables").toLong();
+thisMonth = today.getMonth();
+lst = list();
+//Get portal Id
+portal = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portals/"
+	type :GET
+	connection:"zohoproject"
+];
+portalId = portal.get("portals").get(0).get("id");
+parameters = Map();
+parameters.put("index",projectHoursThisMonth);
+parameters.put("range",4);
+projects = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/"
+	type :GET
+	parameters:parameters
+	connection:"zohoproject"
+];
+projects = projects.get("projects");
+for each  project in projects
+{
+	loggedHours = 0;
+	projectId = project.get("id");
+	//info projectId;
+	tasks = invokeurl
+	[
+		url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/tasks/"
+		type :GET
+		connection:"zohoproject"
+	];
+	tasks = tasks.get("tasks");
+	for each  task in tasks
+	{
+		//info task;
+		//info "nooo";
+		endDate = task.get("end_date");
+		if(endDate != null)
+		{
+			endDateMonth = endDate.getMonth();
+		}
+		if(thisMonth == endDateMonth)
+		{
+			nonBillableHours = task.get("log_hours").get("non_billable_hours").toDecimal();
+			//info nonBillableHours;
+			billiableHours = task.get("log_hours").get("billable_hours").toDecimal();
+			//info billiableHours;
+			loggedHours = loggedHours + nonBillableHours + billiableHours;
+		}
+	}
+	//update project
+	projectMap = Map();
+	projectMap.put("UDF_DOUBLE2",loggedHours);
+	tasks = invokeurl
+	[
+		url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/"
+		type :POST
+		parameters:projectMap
+		connection:"zohoproject"
+	];
+}
+info projects.size();
+//Update Org variable plus 1
+if(projects.size() < 2)
+{
+	projectHoursThisMonth = 1;
+	updateOrgVariable = invokeurl
+	[
+		url :"https://www.zohoapis.eu/crm/v6/settings/variables/projectHoursThisMonth"
+		type :PUT
+		parameters:toString({"variables":{{"value":projectHoursThisMonth.toString()}}})
+		connection:"crmvariables"
+		content-type:"application/json"
+	];
+}
+else
+{
+	projectHoursThisMonth = projectHoursThisMonth + 2;
+	updateOrgVariable = invokeurl
+	[
+		url :"https://www.zohoapis.eu/crm/v6/settings/variables/projectHoursThisMonth"
+		type :PUT
+		parameters:toString({"variables":{{"value":projectHoursThisMonth.toString()}}})
+		connection:"crmvariables"
+		content-type:"application/json"
+	];
+}
