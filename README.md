@@ -23,3 +23,7 @@ Mapperne er opdelt efter hvilken platform koden eksekveres fra.
 Script der eksekveres i Zoho CRM ligger i crm etc.
 </p>
 
+## Undladelse af script
+<p align="center"> 
+Jeg har undladet at tilføje scriptet med integrationen mellem Zoho og Teamworks.com, da det indeholder følsom information.
+</p>
