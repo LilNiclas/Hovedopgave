@@ -6,7 +6,7 @@
 
 </div>
 
-## Deluge Script Files on Github
+## Deluge Script Filer på Github
 
 <p align="center"> 
 Deluge-scripts har ikke en specifik filendelse som f.eks. .js for JavaScript eller .py for Python. Disse scripts skrives og gemmes direkte i Zohos platforme, såsom Zoho CRM eller Zoho Projects, og kan ikke downloades som selvstændige filer.
