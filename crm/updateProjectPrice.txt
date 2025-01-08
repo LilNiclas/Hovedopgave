@@ -1,6 +1,5 @@
 void schedule.updateProjectPrice()
 {
-info "yo";
 updateProjectPrice = zoho.crm.getOrgVariable("updateProjectPrice").toLong();
 productPriceMap = Map();
 //Get Portal
