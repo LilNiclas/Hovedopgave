@@ -1,0 +1,14 @@
+<div align="center">
+
+  <h1>ZRM - Hovedopgave 2025</h1>
+  
+  ![image](https://media.licdn.com/dms/image/v2/D4D0BAQGsolzDeyYlxA/company-logo_200_200/company-logo_200_200/0/1713527754152/z_r_m_logo?e=2147483647&v=beta&t=EJL3zBxW49gziSJIwVTfk5cz4PXUrSwZpRBbL9JWv50)
+
+</div>
+
+## Deluge Script Files on Github
+
+<p align="center"> 
+Deluge-scripts har ikke en specifik filendelse som f.eks. .js for JavaScript eller .py for Python. Disse scripts skrives og gemmes direkte i Zohos platforme, såsom Zoho CRM eller Zoho Projects, og kan ikke downloades som selvstændige filer.
+Alle scripts her er manuelt kopieret fra Zoho IDE.
+</p>
