@@ -1,0 +1,129 @@
+orgId = 20082352585;
+//Get all agents
+agents = zoho.desk.getRecords(orgId,"Agents");
+agents = agents.get("data");
+//for each  agent in agents
+//{
+agent = zoho.desk.getRecordById(orgId,"agents",107555000005511001);
+openTicketsList = list();
+closedTicketsLastWeekList = list();
+dueDateTicketList = list();
+currentDate = zoho.currentdate;
+currentWeekEnd = currentDate.addDay(7);
+lastWeekStart = currentDate.subDay(7);
+lastWeekEnd = lastWeekStart.addDay(6);
+agentId = agent.get("id");
+// Fetch tickets for the agent
+searchValue = {"assigneeId":agentId};
+ticketRecords = zoho.desk.searchRecords(orgId,"tickets",searchValue);
+if(ticketRecords != null)
+{
+	ticketRecords = ticketRecords.get("data");
+	for each  ticket in ticketRecords
+	{
+		ticketStatus = ticket.get("statusType");
+		ticketDueDate = ticket.get("dueDate");
+		ticketOverDueDate = ticket.get("isOverDue");
+		// Open Tickets
+		if(ticketStatus == "Open")
+		{
+			openTicketsList.add(ticket);
+		}
+		// Closed Tickets - last week
+		else if(ticketStatus == "Closed")
+		{
+			ticketClosedDate = ticket.get("closedTime").toDate();
+			if(ticketClosedDate != null && ticketClosedDate >= lastWeekStart && ticketClosedDate <= lastWeekEnd)
+			{
+				closedTicketsLastWeekList.add(ticket);
+			}
+		}
+		// Open tickets with due date next week
+		else if(ticketStatus == "Open" && ticketDueDate >= currentDate && ticketDueDate <= currentWeekEnd)
+		{
+			dueDateTicketList.add(ticket);
+		}
+	}
+	// CSS Styling for Tables
+	cssStyle = "<style>.styled-table { border-collapse: collapse; margin: 25px 0; font-size: 0.9em; font-family: Arial, sans-serif; min-width: 400px; box-shadow: 0 0 20px rgba(0, 0, 0, 0.15); }.styled-table 	thead tr { background-color: #223c60; color: #ffffff; text-align: left; }.styled-table th, .styled-table td { padding: 12px 15px; }.styled-table tbody tr { border-bottom: 1px solid #dddddd; }.styled-table tbody tr:nth-of-type(even) { background-color: #f3f3f3; }.styled-table tbody tr:last-of-type { border-bottom: 2px solid #223c60; }.styled-table tbody tr.active-row { font-weight: bold; color: #009879; }</style>";
+	// Generate HTML for Open Tickets
+	openTicketsHTML = "<table class='styled-table'>";
+	openTicketsHTML = openTicketsHTML + "<thead><tr><th>Ticket ID</th><th>Subject</th><th>Status</th><th>Created Date</th></tr></thead><tbody>";
+	for each  ticket in openTicketsList
+	{
+		ticketId = ticket.get("id");
+		ticketSubject = ticket.get("subject");
+		ticketStatus = ticket.get("statusType");
+		ticketCreatedDate = ticket.get("createdTime").toString("dd-MM-yyyy");
+		openTicketsHTML = openTicketsHTML + "<tr>";
+		openTicketsHTML = openTicketsHTML + "<td>" + ticketId + "</td>";
+		openTicketsHTML = openTicketsHTML + "<td>" + ticketSubject + "</td>";
+		openTicketsHTML = openTicketsHTML + "<td>" + ticketStatus + "</td>";
+		openTicketsHTML = openTicketsHTML + "<td>" + ticketCreatedDate + "</td>";
+		openTicketsHTML = openTicketsHTML + "</tr>";
+	}
+	openTicketsHTML = openTicketsHTML + "</tbody></table>";
+	// Generate HTML for Closed Tickets Last Week
+	closedTicketsHTML = "<table class='styled-table'>";
+	closedTicketsHTML = closedTicketsHTML + "<thead><tr><th>Ticket ID</th><th>Subject</th><th>Status</th><th>Closed Date</th></tr></thead><tbody>";
+	for each  ticket in closedTicketsLastWeekList
+	{
+		ticketId = ticket.get("id");
+		ticketSubject = ticket.get("subject");
+		ticketStatus = ticket.get("statusType");
+		ticketClosedDate = ticket.get("closedTime").toString("dd-MM-yyyy");
+		closedTicketsHTML = closedTicketsHTML + "<tr>";
+		closedTicketsHTML = closedTicketsHTML + "<td>" + ticketId + "</td>";
+		closedTicketsHTML = closedTicketsHTML + "<td>" + ticketSubject + "</td>";
+		closedTicketsHTML = closedTicketsHTML + "<td>" + ticketStatus + "</td>";
+		closedTicketsHTML = closedTicketsHTML + "<td>" + ticketClosedDate + "</td>";
+		closedTicketsHTML = closedTicketsHTML + "</tr>";
+	}
+	closedTicketsHTML = closedTicketsHTML + "</tbody></table>";
+	if(dueDateTicketList.size() < 0)
+	{
+		// Generate HTML for Due Date Tickets Next Week
+		dueDateTicketsHTML = "<table class='styled-table'>";
+		dueDateTicketsHTML = dueDateTicketsHTML + "<thead><tr><th>Ticket ID</th><th>Subject</th><th>Status</th><th>Due Date</th></tr></thead><tbody>";
+		for each  ticket in dueDateTicketList
+		{
+			ticketId = ticket.get("id");
+			ticketSubject = ticket.get("subject");
+			ticketStatus = ticket.get("statusType");
+			ticketDueDate = ticket.get("dueDate").toString("dd-MM-yyyy");
+			dueDateTicketsHTML = dueDateTicketsHTML + "<tr>";
+			dueDateTicketsHTML = dueDateTicketsHTML + "<td>" + ticketId + "</td>";
+			dueDateTicketsHTML = dueDateTicketsHTML + "<td>" + ticketSubject + "</td>";
+			dueDateTicketsHTML = dueDateTicketsHTML + "<td>" + ticketStatus + "</td>";
+			dueDateTicketsHTML = dueDateTicketsHTML + "<td>" + ticketDueDate + "</td>";
+			dueDateTicketsHTML = dueDateTicketsHTML + "</tr>";
+		}
+		dueDateTicketsHTML = dueDateTicketsHTML + "</tbody></table>";
+	}
+	// Compose the complete HTML email body
+	emailBody = "<html><head>" + cssStyle + "</head><body style='font-family: Arial, sans-serif; color: #333;'>";
+	emailBody = emailBody + "<p style='font-size:15px'>Hej " + agent.get("name") + ",</p>";
+	emailBody = emailBody + "<p style='font-size:14px'>Her er en opsamling på alle dine tilknyttet tickets fra forrige og denne uge:</p>";
+	emailBody = emailBody + "<h4 style='color: #223c60;'>Åbne Tickets (Denne Uge)</h3>";
+	emailBody = emailBody + openTicketsHTML;
+	if(dueDateTicketList.size() < 0)
+	{
+		emailBody = emailBody + "<h4 style='color: #223c60;'>Åbne Tickets med Forfaldsdato Næste Uge</h3>";
+		emailBody = emailBody + dueDateTicketsHTML;
+	}
+	emailBody = emailBody + "<h4 style='color: #223c60;'>Lukkede Tickets (Forrige Uge)</h3>";
+	emailBody = emailBody + closedTicketsHTML;
+	emailBody = emailBody + "<p style='font-size:15px'>Venlig hilsen,<br>ZRM ApS</p>";
+	emailBody = emailBody + "</body></html>";
+	info emailBody;
+	//Send email
+	recipientEmail = agent.get("emailId");
+	senderEmail = zoho.adminuserid;
+	sendmail
+	[
+		from :senderEmail
+		to :recipientEmail
+		subject :"Ugentlige Ticket Opsamling"
+		message :emailBody
+	]
+}
