@@ -1,0 +1,385 @@
+void automation.TEMP_projects()
+{
+portal = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portals/"
+	type :GET
+	connection:"zohoprojects2"
+];
+portal_id = portal.get("portals").get(0).get("id");
+info portal_id;
+//
+/*
+//Get tasklist templates
+tasklist = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/api/v3/portal/" + portal_id + "/templates/tasklists"
+	type :GET
+	connection:"zohoprojects2"
+];
+//info tasklist;
+//
+//GET GROUP DETAILS
+groupDetails = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/usergroups/"
+	type :GET
+	connection:"zohoprojects2"
+];
+groupId = groupDetails.get("userGroups").get(0).get("groupObj").get("group_id");
+info groupId;
+//
+//Get all tags
+tags = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/api/v3/portal/" + portal_id + "/tags"
+	type :GET
+	connection:"zohoprojects2"
+];
+info tags;
+/*
+projectId = 264621000000129973;
+//
+//Get tasksliksts
+taskLists = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/projects/" + projectId + "/tasklists/"
+	type :GET
+	connection:"zohoprojects2"
+];
+tasklists = taskLists.get("tasklists");
+//json string for recurrence
+recurrenceMap = Map();
+recurrenceDetails = Map();
+recurrenceDetails.put("recurring_frequency","weekly");
+recurrenceDetails.put("time_span",1);
+recurrenceDetails.put("number_of_occurrences",30);
+recurrenceDetails.put("is_comments_recurred","true");
+recurrenceDetails.put("set_previous_business_day","false");
+recurrenceDetails.put("recurrence_type","specified_interval_creation");
+recurrenceMap.put("recurrence",recurrenceDetails);
+//
+//Edit tasks 
+for each  tasklist in tasklists
+{
+	taskListId = tasklist.get("id");
+	taskListName = tasklist.get("name");
+	if(taskListName != "Kundedialog")
+	{
+		tasks = invokeurl
+		[
+			url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/projects/" + projectId + "/tasklists/" + taskListId + "/tasks/"
+			type :GET
+			connection:"zohoprojects2"
+		];
+		info tasks;
+		tasks = tasks.get("tasks");
+		for each  task in tasks
+		{
+			taskId = task.get("id");
+			groupIdList = list();
+			groupIdList.add(groupId);
+			tagsList = list();
+			tagsList.add(264621000000129229);
+			groupMap = Map();
+			groupMap.put("priority","High");
+			groupMap.put("tagIds",tagsList);
+			groupMap.put("associated_teams",groupIdList);
+			groupMap.put("start_date",zoho.currentdate.toString("MM-dd-yyyy"));
+			groupMap.put("end_date",zoho.currentdate.toString("MM-dd-yyyy"));
+			groupMap.put("json_string",recurrenceMap.toString());
+			updateTaskResponse = invokeurl
+			[
+				url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/projects/" + projectId + "/tasks/" + taskId + "/"
+				type :POST
+				parameters:groupMap
+				connection:"zohoprojects2"
+			];
+			info updateTaskResponse;
+		}
+	}
+	else
+	{
+		info "The tasklist, Kundedialog, will purposely not be updated";
+	}
+}
+//
+//Get specific task details
+projectId = 264621000000140723;
+taskId = 264621000000136811;
+taskDetails = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/projects/" + projectId + "/"
+	type :GET
+	connection:"zohoprojects2"
+];
+info "Task Details: " + taskDetails;
+//
+//Get portal users
+userEmailCRM = zoho.loginuserid;
+info userEmailCRM;
+portalUsers = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/users/"
+	type :GET
+	connection:"zohoprojects2"
+];
+info portalUsers;
+users = portalUsers.get("users");
+for each  user in users
+{
+	userEmailProjects = user.get("email");
+	if(userEmailCRM == userEmailProjects)
+	{
+		userId = user.get("id");
+	}
+}
+//
+//Update Tag color
+tagMap = Map();
+tagMap.put("name","Rapportering");
+tagMap.put("color_class","bg-tag20");
+tagId = 264621000000136761;
+tagUpdate = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/api/v3/portal/" + portal_id + "/tags/" + tagId
+	type :PATCH
+	parameters:tagMap.toString()
+	connection:"zohoprojects2"
+];
+info tagUpdate;
+//
+//Update tasklists as external
+for each  tasklist in tasklists
+{
+	taskListId = tasklist.get("id");
+	taskListName = tasklist.get("name");
+	updateTasklistMap = Map();
+	updateTasklistMap.put("milestone_id","264621000000000033");
+	updateTasklistMap.put("name",taskListName);
+	updateTasklistMap.put("flag","external");
+	updateTasklistMap.put("status","active");
+	//update tasklist
+	taskLists = invokeurl
+	[
+		url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/projects/" + projectId + "/tasklists/" + taskListId + "/"
+		type :POST
+		parameters:updateTasklistMap
+		connection:"zohoprojects2"
+	];
+}
+//
+//Add an Existing Client Company in a Portal to a Project
+projectId = 264621000000149219;
+clientCompanyId = 264621000000125135;
+clientCompanyMap = Map();
+clientCompanyMap.put("company_id",clientCompanyId);
+clientCompanyMap.put("primary_client","no");
+clientCompanyToProject = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/projects/" + projectId + "/clients/"
+	type :POST
+	parameters:clientCompanyMap
+	connection:"zohoprojects2"
+];
+//
+//Get all clients from client company and add to project
+projectId = 264621000000149219;
+clientCompanyId = 264621000000125135;
+getAllClients = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/clients/"
+	type :GET
+	connection:"zohoprojects2"
+];
+info "ALL CLIENTS: " + getAllClients;
+clients = getAllClients.get("clients");
+for each  client in clients
+{
+	clientName = client.get("name");
+	info clientName;
+	if(clientName.contains("Adtimize"))
+	{
+		clientUsers = client.get("users");
+		for each  clientUser in clientUsers
+		{
+		
+			clientUserId = clientUser.get("id").toString();
+			clientUserEmail = clientUser.get("email").toString();
+			clientUserName = clientUser.get("name").toString();
+			//info clientUserName;
+			projectIdList = list();
+			projectIdList.add(projectId);
+			clientMap = Map();
+			clientMap.put("projids",projectIdList);
+			clientMap.put("clientId",264621000000125135);
+			clientToProject = invokeurl
+			[
+				url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/clientusers/" + clientUserId + "/projects"
+				type :POST
+				parameters:clientMap
+				connection:"zohoprojects2"
+			];
+			info "CLIENT FROM COMPANY TO PROJECT " + clientToProject;
+		}
+	}
+}
+//
+//CREATE A PROJECT
+templateId = 264621000000113222;
+accountName = "AccountTestName";
+projectMap = Map();
+projectMap.put("name",accountName);
+projectMap.put("template_id",templateId);
+//projectMap.put("group_id",groupId);
+projectMap.put("public","yes");
+createProject = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/projects/"
+	type :POST
+	parameters:projectMap
+	connection:"zohoprojects2"
+];
+info createProject;
+projectId = createProject.get("projects").get(0).get("id");
+info projectId;
+
+//
+//Get all clients from client company and add to project
+pickedClient = "fm@adtimize.dk, jasmin@adtimize.dk";
+projectId = 264621000000149219;
+clientCompanyId = 264621000000125135;
+clientList = list();
+getAllClients = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/clients/"
+	type :GET
+	connection:"zohoprojects2"
+];
+clients = getAllClients.get("clients");
+for each  client in clients
+{
+	clientName = client.get("name");
+	info clientName;
+	if(clientName.contains("Adtimize"))
+	{
+		clientUsers = client.get("users");
+		for each  clientUser in clientUsers
+		{
+			clientUserEmail = clientUser.get("email").toString();
+			clientUserName = clientUser.get("name").toString();
+			if(pickedClient.contains(clientUserEmail))
+			{
+				clientUserId = clientUser.get("id").toString();
+				clientList.add(clientUserId);
+			}
+		}
+	}
+}
+
+//
+//Create tags
+products = zoho.crm.getRecords("Products",1,100);
+for each product in products
+{
+	tagList = list();
+	productName = product.get("Product_Name").toString();
+	tagMap = map();
+	tagMap.put("name", productName);
+	tagMap.put("color_class", "bg-tag10");
+	tagList.add(tagMap);
+	finalMap = map();
+	finalMap.put("tags", tagList);
+	tags = invokeurl
+	[
+		url :"https://projectsapi.zoho.eu/api/v3/portal/" + portal_id + "/tags"
+		type :POST 
+		parameters: finalMap
+		connection:"zohoprojects2"
+	];
+	info tags;
+}
+
+taskRecord = zoho.projects.getRecordById("adtimizeaps",264621000000206009,"tasks",264621000000206121);
+info "task record:" + taskRecord;
+
+//Get Projects
+projects = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/projects/"
+	type :GET
+	connection:"zohoprojects2"
+];
+info projects;
+for each  project in projects
+{
+	projectId = project.get("id");
+}
+*/
+/*
+users = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/users/"
+	type :GET
+	connection:"zohoprojects2"
+];
+users = users.get("users");
+for each  user in users
+{
+	info user.get("email");
+	info user.get("zpuid");
+}
+*/
+/*
+projectId = 264621000000258169;
+projectMap = Map();
+projectMap.put("UDF_DOUBLE1",1);
+updateProject = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/projects/" + projectId + "/"
+	type :POST
+	parameters:projectMap
+	connection:"zohoprojects2"
+];
+info updateProject;
+*/
+/*
+//Get specific task details
+taskDetails = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/"+portal_id+"/projects/"+ projectId+ "/tasks/"+taskId+"/"
+	type :GET
+	connection:"zohoprojects2"
+];
+info "Task Details: " + taskDetails;
+*/
+/*
+projectId = 264621000000259173;
+taskId = 264621000000272335;
+newTaskName = "Optimering";
+// + " (" + price + " kr.)";
+recurrenceMap = Map();
+recurrenceDetails = Map();
+recurrenceDetails.put("recurring_frequency","weekly");
+recurrenceDetails.put("time_span",1);
+recurrenceDetails.put("number_of_occurrences","No End Date");
+//number_of_times
+recurrenceDetails.put("is_comments_recurred","true");
+recurrenceDetails.put("set_previous_business_day","false");
+recurrenceDetails.put("recurrence_type","specified_interval_creation");
+recurrenceMap.put("recurrence",recurrenceDetails);
+taskMap = Map();
+taskMap.put("name",newTaskName);
+taskMap.put("json_string",recurrenceMap.toString());
+taskMap.put("start_date",zoho.currentdate.toString("MM-dd-yyyy"));
+taskMap.put("end_date",zoho.currentdate.addDay(7).toString("MM-dd-yyyy"));
+updateTask = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/projects/" + projectId + "/tasks/" + taskId + "/"
+	type :POST
+	parameters:taskMap
+	connection:"zohoprojects2"
+];
+info "UPDATE MOT TASK " + updateTask;
+*/
+}
