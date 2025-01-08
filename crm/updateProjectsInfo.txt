@@ -1,0 +1,337 @@
+void schedule.updateProjectsInfo()
+{
+updateProjectsScheduled = zoho.crm.getOrgVariable("updateProjectsScheduled").toLong();
+productPriceMap = Map();
+//Get Portal
+portal = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portals/"
+	type :GET
+	connection:"zohoprojects2"
+];
+portalId = portal.get("portals").get(0).get("id");
+accounts = zoho.crm.getRecords("Accounts",updateProjectsScheduled,5);
+noAccounts = accounts.size();
+ids_list = List();
+for each  account in accounts
+{
+	accountId = account.get("id");
+	name = account.get("Account_Name");
+	if(name == null)
+	{
+		name = "";
+	}
+	owner = account.get("Owner").get("name");
+	if(owner == null)
+	{
+		owner = "";
+	}
+	//Get subform data
+	account = zoho.crm.getRecordById("Accounts",accountId);
+	totalMonthlyPrice = 0;
+	subscriptions = zoho.crm.getRelatedRecords("Related_List_Label_1","Accounts",accountId);
+	if(subscriptions != null)
+	{
+		for each  subscription in subscriptions
+		{
+			price = subscription.get("Abonnementspris").toDecimal();
+			productName = subscription.get("Produkt").get("name");
+			info productName;
+			productPriceMap.put(productName,price);
+			totalMonthlyPrice = totalMonthlyPrice + price;
+		}
+	}
+	// Get Accounts Projects
+	projects = invokeurl
+	[
+		url :"https://www.zohoapis.eu/crm/v6/Accounts/" + accountId + "/Zoho_Projects"
+		type :GET
+		connection:"zohocrm"
+	];
+	project = projects.get("data");
+	if(project != null)
+	{
+		project = project.get(0);
+		projectId = project.get("id");
+		projectMap = Map();
+		projectMap.put("UDF_DOUBLE1",totalMonthlyPrice);
+		updateProject = invokeurl
+		[
+			url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/"
+			type :POST
+			parameters:projectMap
+			connection:"zohoprojects2"
+		];
+		info updateProject;
+		//
+		// Get quote
+		quotes = zoho.crm.searchRecords("Quotes","(Account_Name:equals:" + accountId + ")",1,100);
+		info quotes;
+		if(quotes.size() > 0)
+		{
+			quoteId = quotes.get("data").get(0).get("id");
+			quoteData = zoho.crm.getRecordById("Quotes",quoteId);
+			owner = quoteData.get("Owner").get("name");
+			if(owner == null)
+			{
+				owner = "";
+			}
+			opsigelsesvarsel = quoteData.get("Opsigelsesvarsel");
+			if(opsigelsesvarsel == null)
+			{
+				opsigelsesvarsel = "";
+			}
+			if(quoteData.get("Contact_Name") != null)
+			{
+				contactId = quoteData.get("Contact_Name").get("id");
+				contactRecord = zoho.crm.getRecordById("Contacts",contactId);
+				contactName = contactRecord.get("First_Name");
+				if(contactName == null)
+				{
+					contactName = "";
+				}
+				lastName = contactRecord.get("Last_Name");
+				if(lastName == null)
+				{
+					lastName = "";
+				}
+				contactName = contactName + lastName;
+				email = contactRecord.get("Email");
+				if(email == null)
+				{
+					email = "";
+				}
+				// Get phone number
+				phone = "";
+				if(contactRecord.get("Mobile") != null)
+				{
+					phone = contactRecord.get("Mobile");
+				}
+				else if(contactRecord.get("Phone") != null)
+				{
+					phone = contactRecord.get("Phone");
+				}
+			}
+			tilbudStartDato = quoteData.get("Forl_bs_Startdato");
+			if(tilbudStartDato != null)
+			{
+				tilbudStartDato = tilbudStartDato.toDate();
+			}
+			else
+			{
+				tilbudStartDato = "";
+			}
+		}
+		else
+		{
+			// No quote connected
+			contactRecords = zoho.crm.getRelatedRecords("Contacts","Accounts",accountId);
+			info contactRecords;
+			if(contactRecords != null)
+			{
+				for each  contactRecord in contactRecords
+				{
+					lastName = contactRecord.get("Last_Name");
+					if(lastName == "-" || lastName == "--" || lastName == null)
+					{
+						lastName = " ";
+					}
+					contactName = contactRecord.get("First_Name");
+					if(contactName == null)
+					{
+						contactName = " ";
+					}
+					contactName = contactName + lastName;
+					email = contactRecord.get("Email");
+					if(email == null)
+					{
+						email = " ";
+					}
+					// Get phone number
+					phone = " ";
+					if(contactRecord.get("Mobile") != null)
+					{
+						phone = contactRecord.get("Mobile");
+					}
+					else if(contactRecord.get("Phone") != null)
+					{
+						phone = contactRecord.get("Phone");
+					}
+				}
+			}
+		}
+		udestaaende = account.get("Udest_ende");
+		if(udestaaende == null)
+		{
+			udestaaende = " ";
+		}
+		cvr = account.get("CVR_VAT_Nr");
+		if(cvr == null)
+		{
+			cvr = " ";
+		}
+		billingStreet = account.get("Billing_Street");
+		if(billingStreet == null)
+		{
+			billingStreet = " ";
+		}
+		billingCity = account.get("Billing_City");
+		if(billingCity == null)
+		{
+			billingCity = " ";
+		}
+		billingCountry = account.get("Billing_Country");
+		if(billingCountry == null)
+		{
+			billingCountry = " ";
+		}
+		billingCode = account.get("Billing_Code");
+		if(billingCode == null)
+		{
+			billingCode = " ";
+		}
+		//THE NEXT SECTION IS TO CREATE A STRING TO SET INTO THE TASK VIRKSOMHED INFORMATION
+		//Next line
+		newline = "<br>";
+		currentTime = zoho.currenttime;
+		currentDate = zoho.currentdate.toString("dd/MM/yyyy");
+		//Business Information Decription
+		opsigelsesvarsel = "<b>Opsigelsesvarsel:</b> " + opsigelsesvarsel + newline;
+		forlobStart = "<b>Forløb start:</b> " + tilbudStartDato + newline;
+		contactName = "<b>Kontakt Person:</b> " + contactName + newline;
+		contactEmail = "<b>Kontakts Email:</b> " + email + newline;
+		contactPhone = "<b>Kontakts Telefon:</b> " + phone + newline;
+		accountName = "<b>Virksomhed:</b> " + name + newline;
+		lastUpdate = "<b>Sidst opdateret:</b> " + currentDate + newline;
+		ownerName = "<b>Sælger:</b> " + owner + newline;
+		udestaaende = "<b>Udestående:</b> " + udestaaende + newline;
+		cvr = "<b>CVR-Nummer:</b> " + cvr + newline;
+		optegnelsesdato = "<b>Optegnelsesdato:</b> " + currentDate + newline;
+		Adresse = "<b>Adresse:</b> " + billingStreet + ", " + billingCity + ", " + billingCode + ", " + billingCountry + newline;
+		accountDescription = accountName + Adresse + contactName + contactPhone + contactEmail + cvr + udestaaende + optegnelsesdato + forlobStart + opsigelsesvarsel + lastUpdate;
+		//
+		//Get tasksliksts
+		taskLists = invokeurl
+		[
+			url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/tasklists/"
+			type :GET
+			connection:"zohoprojects2"
+		];
+		tasklists = taskLists.get("tasklists");
+		info taskLists;
+		//Update task information
+		for each  tasklist in tasklists
+		{
+			taskListName = tasklist.get("name");
+			taskListId = tasklist.get("id");
+			if(taskListName.contains("Virksomhed"))
+			{
+				tasks = invokeurl
+				[
+					url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/tasklists/" + taskListId + "/tasks/"
+					type :GET
+					connection:"zohoprojects2"
+				];
+				for each  task in tasks
+				{
+					taskId = task.get(0).get("id");
+					taskMap = Map();
+					taskMap.put("description",accountDescription);
+					updateTaskResponse = invokeurl
+					[
+						url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/tasks/" + taskId + "/"
+						type :POST
+						parameters:taskMap
+						connection:"zohoprojects2"
+					];
+					info updateTaskResponse;
+				}
+			}
+			if(productPriceMap.containKey(taskListName))
+			{
+				price = productPriceMap.get(taskListName);
+				newTaskListName = taskListName + " (" + price + " kr.)";
+				taskListMap = Map();
+				taskListMap.put("name",newTaskListName);
+				taskListMap.put("milestone_id","264621000000000033");
+				taskListMap.put("flag","external");
+				taskListMap.put("status","active");
+				updateTaskList = invokeurl
+				[
+					url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/tasklists/" + taskListId + "/"
+					type :POST
+					parameters:taskListMap
+					connection:"zohoprojects2"
+				];
+				info "UPDATE TASK LIST NAME: " + updateTaskList;
+				//Get Tasks
+				tasks = invokeurl
+				[
+					url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/tasklists/" + taskListId + "/tasks/"
+					type :GET
+					connection:"zohoprojects2"
+				];
+				tasks = tasks.get("tasks");
+				for each  task in tasks
+				{
+					taskId = task.get("id");
+					taskName = task.get("name");
+					if(taskName.contains("Optimering"))
+					{
+						//Lets make
+						newTaskName = "Optimering";
+						// + " (" + price + " kr.)";
+						recurrenceMap = Map();
+						recurrenceDetails = Map();
+						recurrenceDetails.put("recurring_frequency","weekly");
+						recurrenceDetails.put("time_span",1);
+						recurrenceDetails.put("number_of_occurrences","No End Date");
+						recurrenceDetails.put("is_comments_recurred","true");
+						recurrenceDetails.put("set_previous_business_day","false");
+						recurrenceDetails.put("recurrence_type","specified_interval_creation");
+						recurrenceMap.put("recurrence",recurrenceDetails);
+						taskMap = Map();
+						taskMap.put("name",newTaskName);
+						taskMap.put("json_string",recurrenceMap.toString());
+						taskMap.put("start_date",zoho.currentdate.toString("MM-dd-yyyy"));
+						taskMap.put("end_date",zoho.currentdate.addDay(7).toString("MM-dd-yyyy"));
+						updateTask = invokeurl
+						[
+							url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/tasks/" + taskId + "/"
+							type :POST
+							parameters:taskMap
+							connection:"zohoprojects2"
+						];
+						info "UPDATE MOT TASK " + updateTask;
+					}
+				}
+			}
+		}
+	}
+}
+//Update Org variable plus 1
+if(noAccounts < 5)
+{
+	updateProjectsScheduled = 1;
+	updateOrgVariable = invokeurl
+	[
+		url :"https://www.zohoapis.eu/crm/v6/settings/variables/updateProjectsScheduled"
+		type :PUT
+		parameters:toString({"variables":{{"value":updateProjectsScheduled.toString()}}})
+		connection:"crm_variables"
+		content-type:"application/json"
+	];
+}
+else
+{
+	updateProjectsScheduled = updateProjectsScheduled + 1;
+	updateOrgVariable = invokeurl
+	[
+		url :"https://www.zohoapis.eu/crm/v6/settings/variables/updateProjectsScheduled"
+		type :PUT
+		parameters:toString({"variables":{{"value":updateProjectsScheduled.toString()}}})
+		connection:"crm_variables"
+		content-type:"application/json"
+	];
+}
+}
