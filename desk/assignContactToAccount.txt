@@ -1,0 +1,56 @@
+orgId = 20082352585;
+contact = zoho.desk.getRecordById(orgId,"Contacts",contactId);
+contactEmail = contact.get("email");
+contactAccountId = contact.get("accountId");
+if(contactEmail != null && contactAccountId == null)
+{
+	//GET email domain
+	atPosition = contactEmail.indexOf("@");
+	dotPosition = contactEmail.indexOf(".",atPosition);
+	if(atPosition != -1 && dotPosition != -1)
+	{
+		emailDomain = contactEmail.subString(atPosition + 1,dotPosition).toLowerCase();
+	}
+	if(emailDomain != "gmail" && emailDomain != "hotmail" && emailDomain != "yahoo" && emailDomain != "icloud" && emailDomain != "outlook" && emailDomain != "aol" && emailDomain != "mail")
+	{
+		//Search accounts that contains email domain
+		searchResultsV1 = zoho.desk.searchRecords(orgId,"accounts","{email=" + emailDomain + "*}");
+		if(searchResultsV1.get("data") != null)
+		{
+			account = searchResultsV1.get("data").get(0);
+			accountEmail = account.get("email").toLowerCase();
+			if(accountEmail != null)
+			{
+				//Check for same domain
+				atPosition = accountEmail.indexOf("@");
+				dotPosition = accountEmail.indexOf(".",atPosition);
+				if(atPosition != -1 && dotPosition != -1)
+				{
+					accountEmailDomain = accountEmail.subString(atPosition + 1,dotPosition).toLowerCase();
+				}
+			}
+		}
+		if(accountEmailDomain == emailDomain)
+		{
+			accountId = account.get("id");
+			//update contact
+			contactMap = Map();
+			contactMap.put("accountId",accountId);
+			updateContact = zoho.desk.update(orgId,"contacts",contactId,contactMap);
+		}
+		else
+		{
+			searchResultsV2 = zoho.desk.searchRecords(orgId,"accounts","{accountName=" + emailDomain + "*}");
+			if(searchResultsV2.get("data") != null)
+			{
+				account = searchResultsV2.get("data").get(0);
+				accountName = account.get("accountName").toLowerCase();
+				accountId = account.get("id");
+				//update contact
+				contactMap = Map();
+				contactMap.put("accountId",accountId);
+				updateContact = zoho.desk.update(orgId,"contacts",contactId,contactMap);
+			}
+		}
+	}
+}
