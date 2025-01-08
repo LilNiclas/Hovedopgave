@@ -1,0 +1,263 @@
+string standalone.createorupdateproject(Int quoteId)
+{
+//Get portal
+portal = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portals/"
+	type :GET
+	connection:"zohoprojects2"
+];
+portal_id = portal.get("portals").get(0).get("id");
+info "portal id" + portal_id;
+//Get groups
+groupDetails = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/usergroups/"
+	type :GET
+	connection:"zohoprojects2"
+];
+groupId = groupDetails.get("userGroups").get(0).get("groupObj").get("group_id");
+info "groupId: " + groupId;
+//Get all tags
+tags = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/api/v3/portal/" + portal_id + "/tags"
+	type :GET
+	connection:"zohoprojects2"
+];
+tagsData = tags.get("tags");
+//Get quote
+quoteRecord = invokeurl
+[
+	url :"https://www.zohoapis.eu/crm/v7/Quotes/" + quoteId
+	type :GET
+	connection:"zohocrm"
+];
+quoteRecord = quoteRecord.get("data").get(0);
+quotedItems = quoteRecord.get("Quoted_Items");
+accountId = quoteRecord.get("Account_Name").get("id");
+accountName = quoteRecord.get("Account_Name").get("name");
+accountProjects = invokeurl
+[
+	url :"https://www.zohoapis.eu/crm/v7/Accounts/" + accountId + "/Zoho_Projects"
+	type :GET
+	connection:"zohocrm"
+];
+info "yo " + accountProjects;
+if(accountProjects == "")
+{
+	//Create a project with api
+	templateId = 264621000000113222;
+	projectMap = Map();
+	projectMap.put("name",accountName);
+	projectMap.put("template_id",templateId);
+	projectMap.put("public","yes");
+	createProject = invokeurl
+	[
+		url :"https://projectsapi.zoho.eu/restapi/portal/" + portal_id + "/projects/"
+		type :POST
+		parameters:projectMap
+		connection:"zohoprojects2"
+	];
+	info createProject;
+	projectId = createProject.get("projects").get(0).get("id");
+	mp = Map();
+	mp.put("name",accountName);
+	contdet = Map();
+	contdet.put("id",accountId);
+	mp.put("accounts",contdet.tolist());
+	datalist = List();
+	datalist.add(mp);
+	datamp = Map();
+	datamp.put("data",datalist);
+	resp = invokeurl
+	[
+		url :"https://www.zohoapis.eu/crm/v7/Accounts/" + accountId + "/Zoho_Projects/" + projectId
+		type :POST
+		parameters:datamp.toString()
+		connection:"zohocrm"
+	];
+	shift = today.toDate().toString("yyyy-MM-dd'T'HH:mm:ssZ");
+	new = shift.subString(0,shift.len() - 2) + ":" + "00";
+}
+else
+{
+	projectId = accountProjects.get("data").get(0).get("id");
+	shift = today.toDate().toString("yyyy-MM-dd'T'HH:mm:ssZ");
+	new = shift.subString(0,shift.len() - 2) + ":" + "00";
+}
+productNameList = List();
+for each  item in quotedItems
+{
+	bindingsperiode = item.get("Bindingsperiode");
+	tagProductName = item.get("Product_Name").get("name");
+	if(bindingsperiode == "Engangskøb")
+	{
+		productName = item.get("Product_Name").get("name") + " - Engangskøb";
+	}
+	else
+	{
+		productName = item.get("Product_Name").get("name");
+	}
+	info "PRODUCT NAME: " + productName;
+	info "PRODUCT TAG NAME " + tagProductName;
+	productNameList.add(tagProductName);
+	//productNamesList.add(productName);
+	taskListDetails = Map();
+	taskListDetails.put("shift_days",new);
+	if(productName.contains("SEO"))
+	{
+		taskListDetails.put("task_template_id",264621000000128439);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Facebook"))
+	{
+		taskListDetails.put("task_template_id",264621000000129627);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Google Ads"))
+	{
+		taskListDetails.put("task_template_id",264621000000129631);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("E-mail"))
+	{
+		taskListDetails.put("task_template_id",264621000000129635);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Snapchat"))
+	{
+		taskListDetails.put("task_template_id",264621000000133223);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Marketingsplan"))
+	{
+		taskListDetails.put("task_template_id",264621000000133229);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Varekøb"))
+	{
+		taskListDetails.put("task_template_id",264621000000131223);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Bing"))
+	{
+		taskListDetails.put("task_template_id",264621000000134043);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Remarketing"))
+	{
+		taskListDetails.put("task_template_id",264621000000131227);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("CSS"))
+	{
+		taskListDetails.put("task_template_id",264621000000131231);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Amazon"))
+	{
+		taskListDetails.put("task_template_id",264621000000133239);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Youtube"))
+	{
+		taskListDetails.put("task_template_id",264621000000134047);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("TrailHub"))
+	{
+		taskListDetails.put("task_template_id",264621000000134051);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Søgeordsanalyse"))
+	{
+		taskListDetails.put("task_template_id",264621000000131251);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Pinterest"))
+	{
+		taskListDetails.put("task_template_id",264621000000134067);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("SoMe"))
+	{
+		taskListDetails.put("task_template_id",264621000000131259);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Hjemmeside"))
+	{
+		taskListDetails.put("task_template_id",264621000000133257);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Design"))
+	{
+		taskListDetails.put("task_template_id",264621000000133261);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("LinkedIn"))
+	{
+		taskListDetails.put("task_template_id",264621000000134079);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Bannere"))
+	{
+		taskListDetails.put("task_template_id",264621000000131267);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Video"))
+	{
+		taskListDetails.put("task_template_id",264621000000133269);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Billeder"))
+	{
+		taskListDetails.put("task_template_id",264621000000134083);
+		taskListDetails.put("name",productName);
+	}
+	else if(productName.contains("Marketingstrategi"))
+	{
+		taskListDetails.put("task_template_id",264621000000134087);
+		taskListDetails.put("name",productName);
+	}
+	else
+	{
+		//Default listen
+		taskListDetails.put("task_template_id",264621000000133235);
+		taskListDetails.put("name",productName);
+	}
+	createTaskList = zoho.projects.create(portal_id,projectId,"taskLists",taskListDetails,"zohoprojects2");
+}
+info "product list" + productNameList;
+//Add tag to project
+tagsList = List();
+for each  productNameTag in productNameList
+{
+	for each  tag in tagsData
+	{
+		tagName = tag.get("name");
+		//match tag name
+		if(productNameTag == tagName)
+		{
+			tagMap = Map();
+			tagId = tag.get("id");
+			tagsList.add(tagId);
+		}
+	}
+}
+tagsString = tagsList.toString(",");
+info "TAGS STRING " + tagsString;
+tagMap.put("tag_id",tagsString);
+tagMap.put("entity_id",projectId);
+tagMap.put("entityType",2);
+//associate tag
+associateTags = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/api/v3/portal/" + portal_id + "/projects/" + projectId + "/tags/associate"
+	type :POST
+	parameters:tagMap
+	connection:"zohoprojects2"
+];
+info "Associate tags " + associateTags;
+return projectId;
+}
