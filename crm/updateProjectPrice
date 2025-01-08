@@ -1,0 +1,147 @@
+void schedule.updateProjectPrice()
+{
+info "yo";
+updateProjectPrice = zoho.crm.getOrgVariable("updateProjectPrice").toLong();
+productPriceMap = Map();
+//Get Portal
+portal = invokeurl
+[
+	url :"https://projectsapi.zoho.eu/restapi/portals/"
+	type :GET
+	connection:"zohoprojects2"
+];
+portalId = portal.get("portals").get(0).get("id");
+//account = zoho.crm.getRecordById("Accounts", 727996000004058403);
+accounts = zoho.crm.getRecords("Accounts",updateProjectPrice,2);
+noAccounts = accounts.size();
+for each  account in accounts
+{
+	accountId = account.get("id");
+	account = zoho.crm.getRecordById("Accounts",accountId);
+	info account;
+	accountYdelserSubform = account.get("Ydelser");
+	info accountYdelserSubform;
+	totalMonthlyPrice = 0;
+	if(accountYdelserSubform != null)
+	{
+		for each  ydelse in accountYdelserSubform
+		{
+			productName = ydelse.get("Produkt").get("name").toString();
+			price = ydelse.get("Pris");
+			info price;
+			if(price != null)
+			{
+				//price.toDecimal();
+			}
+			else
+			{
+				price = 0;
+			}
+			productPriceMap.put(productName,price);
+			totalMonthlyPrice = totalMonthlyPrice + price;
+		}
+	}
+	subscriptions = zoho.crm.getRelatedRecords("Related_List_Label_1","Accounts",accountId);
+	if(subscriptions != null)
+	{
+		for each  subscription in subscriptions
+		{
+			price = subscription.get("Abonnementspris").toDecimal();
+			totalMonthlyPrice = totalMonthlyPrice + price;
+		}
+	}
+	projects = invokeurl
+	[
+		url :"https://www.zohoapis.eu/crm/v6/Accounts/" + accountId + "/Zoho_Projects"
+		type :GET
+		connection:"zohocrm"
+	];
+	project = projects.get("data");
+	if(project != null)
+	{
+		project = project.get(0);
+		projectId = project.get("id");
+		projectMap = Map();
+		projectMap.put("UDF_DOUBLE1",totalMonthlyPrice);
+		updateProject = invokeurl
+		[
+			url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/"
+			type :POST
+			parameters:projectMap
+			connection:"zohoprojects2"
+		];
+		info updateProject;
+		//Update task
+		//Get tasksliksts
+		taskLists = invokeurl
+		[
+			url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/tasklists/"
+			type :GET
+			connection:"zohoprojects2"
+		];
+		tasklists = taskLists.get("tasklists");
+		for each  tasklist in tasklists
+		{
+			taskListId = tasklist.get("id");
+			tasklistName = tasklist.get("name");
+			if(productPriceMap.containKey(tasklistName))
+			{
+				price = productPriceMap.get(tasklistName);
+				//info price;
+				//Get Tasks
+				tasks = invokeurl
+				[
+					url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/tasklists/" + taskListId + "/tasks/"
+					type :GET
+					connection:"zohoprojects2"
+				];
+				tasks = tasks.get("tasks");
+				for each  task in tasks
+				{
+					taskId = task.get("id");
+					taskName = task.get("name");
+					if(taskName.contains("Optimering"))
+					{
+					}
+					newTaskName = taskName + " (" + price + " kr.)";
+					taskMap = Map();
+					taskMap.put("name",newTaskName);
+					updateTask = invokeurl
+					[
+						url :"https://projectsapi.zoho.eu/restapi/portal/" + portalId + "/projects/" + projectId + "/tasks/" + taskId + "/"
+						type :POST
+						parameters:taskMap
+						connection:"zohoprojects2"
+					];
+					info updateTask;
+				}
+			}
+		}
+	}
+}
+//Update Org variable plus 1
+if(noAccounts < 2)
+{
+	updateProjectPrice = 1;
+	updateOrgVariable = invokeurl
+	[
+		url :"https://www.zohoapis.eu/crm/v6/settings/variables/updateProjectPrice"
+		type :PUT
+		parameters:toString({"variables":{{"value":updateProjectPrice.toString()}}})
+		connection:"crm_variables"
+		content-type:"application/json"
+	];
+}
+else
+{
+	updateProjectPrice = updateProjectPrice + 1;
+	updateOrgVariable = invokeurl
+	[
+		url :"https://www.zohoapis.eu/crm/v6/settings/variables/updateProjectPrice"
+		type :PUT
+		parameters:toString({"variables":{{"value":updateProjectPrice.toString()}}})
+		connection:"crm_variables"
+		content-type:"application/json"
+	];
+}
+}
