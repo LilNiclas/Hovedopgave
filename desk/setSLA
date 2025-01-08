@@ -1,0 +1,35 @@
+orgId = 20082352585;
+accountRecord = zoho.desk.getRecordById(orgId,"Accounts",accountId);
+info accountRecord;
+cf = accountRecord.get("cf");
+if(cf != null)
+{
+	cf_support_aftale = cf.get("cf_support_aftale");
+	if(cf_support_aftale.contains("Premium"))
+	{
+		slaId = 107555000000007203;
+	}
+	else if(cf_support_aftale.contains("Basic"))
+	{
+		slaId = 107555000000007205;
+	}
+	else if(cf_support_aftale.contains("Included"))
+	{
+		slaId = 107555000000007207;
+	}
+	else
+	{
+		slaId = 0;
+	}
+	//set SLA to account
+	slaMap = Map();
+	slaMap.put("associate",true);
+	slaUpdate = invokeurl
+	[
+		url :"https://desk.zoho.eu/api/v1/accounts/" + accountId + "/sla/" + slaId
+		type :POST
+		parameters:slaMap.toString()
+		connection:"zohodesk"
+	];
+	info slaUpdate;
+}
