@@ -1,0 +1,49 @@
+//Sleep for 10 sec, so new contacts gets associated with account first if necessary
+getUrl("https://httpstat.us/200?sleep=10000");
+//Get ticket and do its thang
+orgId = 20082352585;
+ticketRecord = zoho.desk.getRecordById(orgId,"Tickets",ticketId);
+info ticketRecord;
+accountId = ticketRecord.get("accountId");
+contactId = ticketRecord.get("contactId");
+if(accountId != null)
+{
+	accountRecord = zoho.desk.getRecordById(orgId,"Accounts",accountId);
+	info accountRecord;
+	ownerId = accountRecord.get("ownerId");
+	//If userId is null, set Magnus as ticket owner.
+	if(ownerId == null)
+	{
+		ownerId = 107555000005171001;
+	}
+	ticketMap = Map();
+	ticketMap.put("assigneeId",ownerId);
+	updateTicket = zoho.desk.update(orgId,"Tickets",ticketId,ticketMap);
+	info updateTicket;
+}
+else if(contactId != null)
+{
+	contact = zoho.desk.getRecordById(orgId,"contacts",contactId);
+	if(contact != null)
+	{
+		contactAccountId = contact.get("accountId");
+		if(contactAccountId != null)
+		{
+			accountRecord = zoho.desk.getRecordById(orgId,"Accounts",contactAccountId);
+			info accountRecord;
+			ownerId = accountRecord.get("ownerId");
+			//If userId is null, set Magnus as ticket owner.
+			if(ownerId == null)
+			{
+				ownerId = 107555000005171001;
+			}
+			ticketMap = Map();
+			ticketMap.put("assigneeId",ownerId);
+			updateTicket = zoho.desk.update(orgId,"Tickets",ticketId,ticketMap);
+		}
+	}
+}
+else
+{
+	info "No, account found";
+}
