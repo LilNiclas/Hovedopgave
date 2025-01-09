@@ -1,0 +1,53 @@
+void schedule.UdregnUdestaaende()
+{
+page = zoho.crm.getOrgVariable("account_page");
+resp = invokeurl
+[
+	url :"https://www.zohoapis.eu/crm/v7/Accounts?fields=id&per_page=200&page=" + page
+	connection:"zohocrm"
+];
+ids = resp.get("data");
+if(ids.size() != 200)
+{
+	valueMap = Map();
+	valueMap.put("apiname","account_page");
+	valueMap.put("value",1);
+	resp = zoho.crm.invokeConnector("crm.set",valueMap);
+}
+else
+{
+	valueMap = Map();
+	valueMap.put("apiname","account_page");
+	valueMap.put("value",page.toNumber() + 1);
+	resp = zoho.crm.invokeConnector("crm.set",valueMap);
+}
+for each  id in ids
+{
+	id = id.get("id");
+	invoices = invokeurl
+	[
+		url :"https://www.zohoapis.eu/crm/v7/Accounts/" + id + "/Invoices?fields=Sub_Total,Status"
+		connection:"zohocrm"
+	];
+	if(invoices.toString() == "")
+	{
+		continue;
+	}
+	subtotal = 0;
+	// Loop through each invoice and sum the Sub_Total values
+	for each  invoice in invoices.get("data")
+	{
+		status = invoice.get("Status");
+		if(status != "Betalt")
+		{
+			invoiceSubtotal = invoice.get("Sub_Total");
+			if(invoiceSubtotal != null)
+			{
+				// Ensure the Sub_Total field is not null
+				subtotal = subtotal + invoiceSubtotal;
+			}
+		}
+	}
+	zoho.crm.updateRecord("Accounts",id,{"Udest_ende":subtotal});
+}
+}
