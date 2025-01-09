@@ -1,0 +1,139 @@
+void automation.createContactFromLead(Int quoteId)
+{
+//Get lead and quote
+quoteRecord = zoho.crm.getRecordById("Quotes",quoteId);
+quoteSubject = quoteRecord.get("Subject");
+quoteValidUntil = quoteRecord.get("Valid_Till");
+quoteLayout = quoteRecord.get("Layout");
+//Lead id and tags
+leadRecord = quoteRecord.get("Lead_Name");
+leadId = leadRecord.get("id");
+leadRecord = zoho.crm.getRecordById("Leads",leadId);
+//Get Tags 
+tags = leadRecord.get("Tag");
+info "tags " + tags;
+tagList = List();
+for each  tag in tags
+{
+	tagName = tag.get("name");
+	info tagName;
+	tagMap = Map();
+	tagMap.put("name",tagName);
+	tagList.add(tagMap);
+}
+info "taglist " + tagList;
+//Convert Lead to Contact and Account
+lead = zoho.crm.getRecordById("Leads",leadId);
+leademail = lead.get("Email");
+CVRNrummer = lead.get("CVR_VAT_Nr");
+account = zoho.crm.searchRecords("Accounts","(CVR_VAT_Nr:equals:" + CVRNrummer + ")");
+contact = zoho.crm.searchRecords("Contacts","(Email:equals:" + leademail + ")");
+mp = Map();
+if(account.isEmpty() == false)
+{
+	account = account.get(0);
+	accountId = account.get("id");
+	mpa = Map();
+	mpa.put("id",accountId);
+	mp.put("Accounts",mpa);
+}
+if(contact.isEmpty() == false)
+{
+	contact = contact.get(0);
+	contactId = contact.get("id");
+	mpc = Map();
+	mpc.put("id",contactId);
+	mp.put("Contacts",mpc);
+}
+mp.put("overwrite",true);
+datalist = List();
+datalist.add(mp);
+datamp = Map();
+datamp.put("data",datalist);
+resp = invokeurl
+[
+	url :"https://www.zohoapis.eu/crm/v7/Leads/" + leadId + "/actions/convert"
+	type :POST
+	parameters:datamp.toString()
+	connection:"zohocrm"
+];
+info resp;
+accountId = resp.get("data").get(0).get("details").get("Accounts").get("id");
+contactId = resp.get("data").get(0).get("details").get("Contacts").get("id");
+info "contact id " + contactId;
+if(contactId != null && accountId != null)
+{
+	//Set lead tags to contact
+	if(tagList.size() > 0)
+	{
+		param = Map();
+		param.put("tags",tagList);
+		addTags = invokeurl
+		[
+			url :"https://www.zohoapis.eu/crm/v6/Contacts/" + contactId + "/actions/add_tags?"
+			type :POST
+			parameters:param.toString()
+			connection:"zohocrm"
+		];
+		info addTags;
+		tagsData = addTags.get("data").get(0);
+		//Check if tags were added
+		if(tagsData.get("code") == "SUCCESS")
+		{
+			info "SUCCES, TAGS ADDDED";
+		}
+		else
+		{
+			info "ERROR, TAGS WEREN'T ADDDED";
+		}
+	}
+	else
+	{
+		info "TAGLIST IS EMPTY";
+	}
+}
+else
+{
+	info "LEAD WAS NOT CONVERTED TO CONTACT AND ACCOUNT";
+}
+//Update Quote with New Contact and Account
+quoteMap = Map();
+quoteMap.put("Account_Name",accountId);
+quoteMap.put("Lead_Name",null);
+quoteMap.put("Contact_Name",contactId);
+quoteMap.put("Subject",quoteSubject);
+quoteMap.put("Layout",quoteLayout);
+quoteMap.put("Valid_Till",quoteValidUntil);
+//Update Quote
+updateQuoteResponse = zoho.crm.updateRecord("Quotes",quoteId,quoteMap);
+info updateQuoteResponse;
+//Create an Invoice and subscription from quote. If forløb startdato is today, then create subscription. Even though the field is mandatory.
+courseStart = quoteRecord.get("Forl_bs_Startdato").toDate();
+info "FORLØBS START: " + courseStart;
+currentDate = zoho.currentdate;
+if(courseStart == currentDate)
+{
+	info "Create invoice and subscription";
+	invoiceAndSubscription = standalone.createInvoiceAndSubscriptionFromQuote(quoteId);
+	info invoiceAndSubscription;
+}
+else if(courseStart < currentDate)
+{
+	info "Create invoice and subscription";
+	invoiceAndSubscription = standalone.createInvoiceAndSubscriptionFromQuote(quoteId);
+	info invoiceAndSubscription;
+}
+else
+{
+	info "Forløbs Startdato er efter dagsdato, ikke opret faktura og subscription";
+}
+//Create Project with tasks, or add tasks to an existing project
+createOrUpdateProject = standalone.createorupdateproject(quoteId);
+projectId = createOrUpdateProject;
+//returns the projectId
+info "PROJCET ID END: " + projectId;
+//Update project tasks with priority, dates, recurrence, team,
+//Because porject templates are used it takes a little time before you can update the tasks, so a 30 second timer is set
+getUrl("https://httpstat.us/200?sleep=30000");
+standalone.updateProjectTasks(projectId,quoteId);
+}
