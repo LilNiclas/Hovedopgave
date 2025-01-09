@@ -1,4 +1,4 @@
-void automation.createContactFromLead(Int quoteId)
+void automation.leadWinsQuote(Int quoteId)
 {
 //Get lead and quote
 quoteRecord = zoho.crm.getRecordById("Quotes",quoteId);
